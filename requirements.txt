@@ -1,0 +1,11 @@
+openai
+feedparser
+requests
+fastapi
+uvicorn[standard]
+python-multipart
+python-jose[cryptography]
+python-dotenv
+schedule
+fpdf2
+bcrypt

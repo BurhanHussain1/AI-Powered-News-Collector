@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Archive &mdash; The AI Digest{% endblock %}
+
+{# ── Masthead date slot left empty on archive page ── #}
+{% block masthead_date %}Archive{% endblock %}
+
+{# ── Highlight Archive tab ── #}
+{% block archive_tab_class %}nav-tab-active{% endblock %}
+
+{% block section_tabs %}{% endblock %}
+{% block footer_meta %}{% endblock %}
+
+{# ══════════════════════════════════════════════════════════════
+   PAGE-SPECIFIC STYLES
+══════════════════════════════════════════════════════════════ #}
+{% block extra_head %}
+<style>
+    /* ─── ARCHIVE HEADER ─────────────────────────────────── */
+    .archive-page-header {
+        border-top: 3px double var(--ink);
+        border-bottom: 1px solid var(--rule);
+        padding: 1.5rem 0 1.25rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .archive-page-title {
+        font-family: var(--font-display);
+        font-size: clamp(1.8rem, 4vw, 2.8rem);
+        font-weight: 900;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+    }
+
+    .archive-page-subtitle {
+        font-family: var(--font-body);
+        font-style: italic;
+        font-size: 0.9rem;
+        color: var(--ink-light);
+        margin-top: 0.3rem;
+    }
+
+    /* ─── YEAR GROUP ─────────────────────────────────────── */
+    .archive-year-group {
+        margin-bottom: 2.5rem;
+    }
+
+    .archive-year-label {
+        font-family: var(--font-ui);
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--ink-light);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .archive-year-label::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--rule);
+    }
+
+    /* ─── ARCHIVE GRID ───────────────────────────────────── */
+    .archive-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 1px;
+        background: var(--rule);
+        border: 1px solid var(--rule);
+    }
+
+    .archive-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: var(--paper);
+        padding: 1rem 1.1rem 0.85rem;
+        transition: background 0.15s;
+        min-height: 100px;
+        position: relative;
+    }
+
+    .archive-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--ink);
+        transform: scaleX(0);
+        transition: transform 0.2s ease;
+        transform-origin: left;
+    }
+
+    .archive-card:hover {
+        background: var(--paper-warm);
+        text-decoration: none;
+    }
+
+    .archive-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .archive-card-day {
+        font-family: var(--font-display);
+        font-size: 2rem;
+        font-weight: 900;
+        line-height: 1;
+        color: var(--ink);
+    }
+
+    .archive-card-month-year {
+        font-family: var(--font-ui);
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-light);
+        margin-top: 0.15rem;
+    }
+
+    .archive-card-label {
+        font-family: var(--font-ui);
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-faint);
+        margin-top: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .archive-card-label .arrow {
+        transition: transform 0.15s;
+    }
+
+    .archive-card:hover .archive-card-label {
+        color: var(--ink);
+    }
+
+    .archive-card:hover .arrow {
+        transform: translateX(3px);
+    }
+
+    /* ─── COUNT BADGE ────────────────────────────────────── */
+    .archive-count-badge {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        font-family: var(--font-ui);
+        font-size: 0.58rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        background: var(--paper-aged);
+        border: 1px solid var(--rule);
+        color: var(--ink-light);
+        padding: 0.1rem 0.35rem;
+    }
+
+    /* ─── EMPTY STATE ────────────────────────────────────── */
+    .no-content {
+        text-align: center;
+        padding: 5rem 2rem;
+        border: 1px dashed var(--rule-dark);
+        margin: 2rem 0;
+    }
+
+    .no-content h2 {
+        font-family: var(--font-display);
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+    }
+
+    .no-content p {
+        font-family: var(--font-body);
+        font-style: italic;
+        color: var(--ink-light);
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{# ══════════════════════════════════════════════════════════════
+   CONTENT
+══════════════════════════════════════════════════════════════ #}
+{% block content %}
+<div class="newspaper-container">
+
+    <div class="archive-page-header">
+        <h2 class="archive-page-title">Edition Archive</h2>
+        <p class="archive-page-subtitle">
+            {% if digests %}
+                {{ digests | length }} edition{{ 's' if digests | length != 1 }} on record
+            {% else %}
+                No editions published yet
+            {% endif %}
+        </p>
+    </div>
+
+    {% if digests %}
+
+        {# Group editions by year for visual organisation #}
+        {% set ns = namespace(current_year='') %}
+        {% for digest in digests %}
+            {% set parts = digest.date.split('-') %}
+            {% set yr = parts[0] if parts|length >= 1 else '' %}
+            {% set mo = parts[1] if parts|length >= 2 else '' %}
+            {% set dy = parts[2] if parts|length >= 3 else '' %}
+
+            {# Emit a year heading whenever the year changes #}
+            {% if yr != ns.current_year %}
+                {% if not loop.first %}</div></div>{% endif %}
+                {% set ns.current_year = yr %}
+                <div class="archive-year-group">
+                    <div class="archive-year-label">{{ yr }}</div>
+                    <div class="archive-grid">
+            {% endif %}
+
+            {# Month name lookup #}
+            {% set month_names = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] %}
+            {% set mo_int = mo | int %}
+            {% set mo_name = month_names[mo_int] if mo_int >= 1 and mo_int <= 12 else mo %}
+
+            <a href="/digest/{{ digest.date }}" class="archive-card">
+                {% if digest.article_count is defined and digest.article_count %}
+                <span class="archive-count-badge">{{ digest.article_count }}</span>
+                {% endif %}
+                <div>
+                    <div class="archive-card-day">{{ dy }}</div>
+                    <div class="archive-card-month-year">{{ mo_name }}&nbsp;{{ yr }}</div>
+                </div>
+                <div class="archive-card-label">
+                    View Edition <span class="arrow">&rarr;</span>
+                </div>
+            </a>
+
+            {% if loop.last %}</div></div>{% endif %}
+        {% endfor %}
+
+    {% else %}
+    <div class="no-content">
+        <h2>No editions yet</h2>
+        <p>Run a refresh to generate your first digest.</p>
+        <a href="/refresh" class="cta-btn">&#8635;&nbsp; Refresh Now</a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

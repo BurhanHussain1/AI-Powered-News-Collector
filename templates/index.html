@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+
+{% block title %}The AI Digest &mdash; {{ date }}{% endblock %}
+
+{# ── Date in masthead ── #}
+{% block masthead_date %}{{ date }}{% endblock %}
+
+{# ── Active tab marker ── #}
+{% block home_tab_class %}nav-tab-active{% endblock %}
+
+{# ── Per-section nav pills ── #}
+{% block section_tabs %}
+    {% if security_alerts %}
+        <a href="#security" class="nav-tab nav-tab-security">&#9679; Security</a>
+    {% endif %}
+    {% for section in sections %}
+        {% if section.articles %}
+            <a href="#{{ section.id }}"
+               class="nav-tab"
+               style="border-bottom-color:{{ section.color }}">{{ section.label }}</a>
+        {% endif %}
+    {% endfor %}
+{% endblock %}
+
+{# ── Footer ── #}
+{% block footer_meta %}Last updated: {{ last_updated }}{% endblock %}
+
+{# ══════════════════════════════════════════════════════════════
+   PAGE-SPECIFIC STYLES
+══════════════════════════════════════════════════════════════ #}
+{% block extra_head %}
+<style>
+    /* ─── SECURITY ALERTS BANNER ─────────────────────────── */
+    .alerts-banner {
+        border: 2px solid #8b0000;
+        background: #fff8f8;
+        margin-bottom: 2rem;
+        padding: 0;
+        scroll-margin-top: 1rem;
+    }
+
+    .alerts-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #8b0000;
+        color: #fff8f8;
+        padding: 0.5rem 1rem;
+    }
+
+    .alerts-label {
+        font-family: var(--font-ui);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    .alerts-count {
+        font-family: var(--font-ui);
+        font-size: 0.65rem;
+        letter-spacing: 0.1em;
+        opacity: 0.85;
+    }
+
+    .alerts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 0;
+    }
+
+    .alert-card {
+        padding: 1rem 1.1rem;
+        border-right: 1px solid #f5c5c5;
+        border-bottom: 1px solid #f5c5c5;
+    }
+
+    .alert-card:last-child { border-right: none; }
+
+    .alert-card-source {
+        font-family: var(--font-ui);
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #8b0000;
+        margin-bottom: 0.3rem;
+    }
+
+    .alert-card-title {
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        font-weight: 700;
+        line-height: 1.3;
+        margin-bottom: 0.35rem;
+    }
+
+    .alert-card-title a { color: #5a0000; }
+    .alert-card-title a:hover { color: #8b0000; text-decoration: underline; }
+
+    .alert-card-summary {
+        font-family: var(--font-body);
+        font-size: 0.8rem;
+        color: #4a2020;
+        line-height: 1.55;
+        margin-bottom: 0.5rem;
+    }
+
+    /* ─── FRONT PAGE ─────────────────────────────────────── */
+    .front-page {
+        margin-bottom: 2.5rem;
+        scroll-margin-top: 1rem;
+    }
+
+    /* Hero story — full-width with a thick left rule */
+    .hero-story {
+        border-left: 5px solid var(--ink);
+        padding: 0.5rem 0 0.75rem 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .hero-meta {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .hero-category {
+        font-family: var(--font-ui);
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        background: var(--ink);
+        color: var(--paper);
+        padding: 0.15rem 0.5rem;
+    }
+
+    .hero-source {
+        font-family: var(--font-ui);
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-light);
+    }
+
+    .badge-exclusive {
+        font-family: var(--font-ui);
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        background: var(--accent-red);
+        color: #fff;
+        padding: 0.15rem 0.5rem;
+    }
+
+    .hero-headline {
+        font-family: var(--font-display);
+        font-size: clamp(1.5rem, 3vw, 2.2rem);
+        font-weight: 900;
+        line-height: 1.2;
+        margin-bottom: 0.6rem;
+        color: var(--ink);
+    }
+
+    .hero-headline a:hover { color: var(--accent-red); text-decoration: none; }
+
+    .hero-summary {
+        font-family: var(--font-body);
+        font-size: 0.95rem;
+        color: var(--ink-mid);
+        line-height: 1.65;
+        max-width: 72ch;
+        margin-bottom: 0.6rem;
+    }
+
+    /* Top-stories grid — 2-col then 4-col cards */
+    .top-stories-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 0;
+        border-top: 1px solid var(--rule);
+    }
+
+    .story-card-featured {
+        border-top: 3px solid var(--ink);
+        padding: 1rem 1rem 1rem 0;
+        border-right: 1px solid var(--rule);
+    }
+
+    .story-card-featured:last-child { border-right: none; }
+
+    .story-score {
+        font-size: 0.75rem;
+        color: var(--accent-gold);
+        margin-top: 0.4rem;
+        letter-spacing: 0.05em;
+    }
+
+    /* ─── DOMAIN SECTIONS ────────────────────────────────── */
+    .domain-section {
+        margin-bottom: 2.5rem;
+        scroll-margin-top: 1rem;
+    }
+
+    .section-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 0;
+        column-gap: var(--column-gap);
+    }
+
+    /* Vertical column rules between grid items */
+    .section-grid .story-card {
+        border-right: 1px solid var(--rule);
+        padding-right: var(--column-gap);
+    }
+
+    .section-grid .story-card:last-child { border-right: none; }
+
+    /* ─── DIVIDER BETWEEN SECTIONS ───────────────────────── */
+    .section-divider {
+        border: none;
+        border-top: 3px double var(--rule-dark);
+        margin: 0 0 2rem;
+    }
+</style>
+{% endblock %}
+
+{# ══════════════════════════════════════════════════════════════
+   CONTENT
+══════════════════════════════════════════════════════════════ #}
+{% block content %}
+<div class="newspaper-container">
+
+    {# ── NO CONTENT FALLBACK ── #}
+    {% if not has_content %}
+    <div class="no-content">
+        <h2>No digest available yet</h2>
+        <p>No articles have been processed for {{ date }}.</p>
+        <a href="/refresh" class="cta-btn">&#8635;&nbsp; Run Refresh Now</a>
+    </div>
+
+    {% else %}
+
+    {# ── SECURITY ALERTS ── #}
+    {% if security_alerts %}
+    <section class="alerts-banner" id="security">
+        <div class="alerts-header">
+            <span class="alerts-label">&#9888; Security Alerts</span>
+            <span class="alerts-count">
+                {{ security_alerts|length }} alert{{ 's' if security_alerts|length != 1 }}
+            </span>
+        </div>
+        <div class="alerts-grid">
+            {% for article in security_alerts %}
+            <div class="alert-card">
+                <div class="alert-card-source">{{ article.source_name }}</div>
+                <h3 class="alert-card-title">
+                    <a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a>
+                </h3>
+                <p class="alert-card-summary">{{ article.summary }}</p>
+                {% if article.tags %}
+                <div class="tags">
+                    {% for tag in article.tags.split(',') %}
+                    <span class="tag tag-alert">{{ tag.strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── EDITION BAR ── #}
+    <div class="edition-bar">
+        <span class="edition-date">{{ date }}</span>
+        <span class="edition-stats">{{ total_count }} article{{ 's' if total_count != 1 }} in today's edition</span>
+    </div>
+
+    {# ── FRONT PAGE / TOP STORIES ── #}
+    {% if top_stories %}
+    <section class="front-page">
+        <div class="section-header">
+            <span class="section-header-label" style="background:var(--ink); color:var(--paper);">Front Page</span>
+            <div class="section-header-rule"></div>
+        </div>
+
+        {# Hero — lead article, full width #}
+        {% set hero = top_stories[0] %}
+        <div class="hero-story">
+            <div class="hero-meta">
+                <span class="hero-category">{{ hero.category | replace('_', ' ') | upper }}</span>
+                <span class="hero-source">{{ hero.source_name }}</span>
+                {% if hero.importance_score == 5 %}
+                <span class="badge-exclusive">Exclusive</span>
+                {% endif %}
+            </div>
+            <h2 class="hero-headline">
+                <a href="{{ hero.url }}" target="_blank" rel="noopener">{{ hero.title }}</a>
+            </h2>
+            <p class="hero-summary">{{ hero.summary }}</p>
+            {% if hero.tags %}
+            <div class="tags">
+                {% for tag in hero.tags.split(',') %}
+                <span class="tag">{{ tag.strip() }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        {# Remaining top stories as a grid beneath the hero #}
+        {% if top_stories | length > 1 %}
+        <div class="top-stories-grid">
+            {% for article in top_stories[1:] %}
+            <div class="story-card story-card-featured">
+                <div class="story-card-meta">
+                    <span class="story-category">{{ article.category | replace('_', ' ') | upper }}</span>
+                    <span class="story-source">{{ article.source_name }}</span>
+                </div>
+                <h3 class="story-headline">
+                    <a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a>
+                </h3>
+                <p class="story-summary">{{ article.summary }}</p>
+                {% if article.tags %}
+                <div class="tags">
+                    {% for tag in article.tags.split(',') %}
+                    <span class="tag">{{ tag.strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="story-score">
+                    {% for i in range(article.importance_score) %}&#9733;{% endfor %}{% for i in range(5 - article.importance_score) %}&#9734;{% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    <hr class="section-divider">
+    {% endif %}
+
+    {# ── DOMAIN SECTIONS ── #}
+    {% for section in sections %}
+    {% if section.articles %}
+    <section class="domain-section" id="{{ section.id }}">
+        <div class="section-header">
+            <span class="section-header-label"
+                  style="background:{{ section.color }}; color:#fff;">{{ section.label }}</span>
+            <div class="section-header-rule" style="background:{{ section.color }}"></div>
+            <span class="section-count">{{ section.articles | length }} stor{{ 'y' if section.articles | length == 1 else 'ies' }}</span>
+        </div>
+
+        <div class="section-grid">
+            {% for article in section.articles %}
+            <div class="story-card" style="border-top-color: {{ section.color }}">
+                <div class="story-card-meta">
+                    <span class="story-source">{{ article.source_name }}</span>
+                    <span class="story-category">{{ article.category | replace('_', ' ') | upper }}</span>
+                    <span class="story-date">
+                        {{ article.published_at[:10] if article.published_at else '' }}
+                    </span>
+                </div>
+
+                <h3 class="story-headline">
+                    <a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a>
+                </h3>
+
+                <p class="story-summary">{{ article.summary }}</p>
+
+                {% if article.tags %}
+                <div class="tags">
+                    {% for tag in article.tags.split(',') %}
+                    <span class="tag"
+                          style="color:{{ section.color }}; border-color:{{ section.border }}">{{ tag.strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="story-footer">
+                    <a href="{{ article.url }}" target="_blank" rel="noopener"
+                       class="read-more" style="color:{{ section.color }}">Read more &rarr;</a>
+                    <span class="story-score-small">
+                        {% for i in range(article.importance_score) %}&#9733;{% endfor %}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% if not loop.last %}
+    <hr class="section-divider">
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+
+    {% endif %}{# end has_content #}
+
+</div>
+{% endblock %}
