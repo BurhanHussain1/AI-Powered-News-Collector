@@ -197,5 +197,5 @@ export async function getAdminDigests(): Promise<DigestRecord[]> {
 }
 
 export async function deleteDigest(id: number) {
-  return apiFetch(`/api/admin/digest/${id}`, { method: "DELETE" })
+  return apiFetch<{ ok: boolean }>(`/api/admin/digest/${id}`, { method: "DELETE" })
 }

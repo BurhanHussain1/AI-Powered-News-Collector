@@ -85,7 +85,7 @@ export default function ProfilePage() {
     e.preventDefault()
     setSaving(true)
     try {
-      await updateProfile({ name, interests: [...selected].join(","), avatar: avatarId })
+      await updateProfile({ name, interests: Array.from(selected).join(","), avatar: avatarId })
       setToast({ text: "Profile saved!", ok: true })
       setTimeout(() => router.push("/"), 800)
     } catch {
