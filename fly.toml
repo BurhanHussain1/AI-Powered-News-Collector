@@ -1,0 +1,26 @@
+# fly.toml — Fly.io config for FeedDigest backend
+# Replace 'feeddigest-api' with your chosen app name if different
+
+app            = 'feeddigest-api'
+primary_region = 'lhr'          # London — change to nearest: iad (US East), ord (Chicago), sin (Singapore)
+
+[build]
+  # Uses the Dockerfile in the project root
+
+[http_service]
+  internal_port       = 5000
+  force_https         = true
+  auto_stop_machines  = 'stop'   # machines sleep when idle (free tier friendly)
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory   = '256mb'
+  cpu_kind = 'shared'
+  cpus     = 1
+
+# Persistent volume — SQLite databases live here
+# Created separately with: fly volumes create feeddigest_data --size 1 --region lhr
+[mounts]
+  source      = 'feeddigest_data'
+  destination = '/app/data'

@@ -355,6 +355,37 @@ def _build_digest_data(date_str: str) -> dict:
 
 # ── PDF generator ─────────────────────────────────────────────────
 
+def _pdf_text(text: str, limit: int = 0) -> str:
+    """
+    Sanitize text for fpdf2 Helvetica (Latin-1 only).
+    - Replaces unsupported Unicode chars with '?'
+    - Breaks long words/URLs so multi_cell never runs out of horizontal space
+    - Optionally truncates to `limit` chars
+    """
+    if not text:
+        return ""
+    if limit:
+        text = text[:limit]
+    # Replace common Unicode punctuation with ASCII equivalents
+    replacements = {
+        "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"',
+        "\u2013": "-", "\u2014": "-", "\u2026": "...", "\u00a0": " ",
+    }
+    for src, dst in replacements.items():
+        text = text.replace(src, dst)
+    # Encode to Latin-1, replacing anything that can't be represented
+    text = text.encode("latin-1", errors="replace").decode("latin-1")
+    # Break any single token longer than 60 chars (e.g. URLs) so multi_cell can wrap
+    words = text.split()
+    broken = []
+    for w in words:
+        while len(w) > 60:
+            broken.append(w[:60])
+            w = w[60:]
+        broken.append(w)
+    return " ".join(broken)
+
+
 def _generate_pdf(date_str: str) -> bytes:
     from fpdf import FPDF
 
@@ -363,20 +394,33 @@ def _generate_pdf(date_str: str) -> bytes:
     pdf.set_margins(20, 20, 20)
     pdf.add_page()
 
+    # Pre-compute usable page width (A4 = 210 mm, margins 20 each side → 170 mm)
+    # Using an explicit width prevents "Not enough horizontal space" errors when
+    # the X cursor drifts after cell/multi_cell operations.
+    PW = pdf.w - pdf.l_margin - pdf.r_margin  # 170 mm
+
+    def mc(h: float, text: str) -> None:
+        """multi_cell wrapper: resets X to left margin before every call."""
+        pdf.set_x(pdf.l_margin)
+        pdf.multi_cell(PW, h, text)
+
     pdf.set_font("Helvetica", "B", 28)
-    pdf.cell(0, 12, "The FeedDigest", new_x="LMARGIN", new_y="NEXT", align="C")
+    pdf.set_x(pdf.l_margin)
+    pdf.cell(PW, 12, "The FeedDigest", new_x="LMARGIN", new_y="NEXT", align="C")
     pdf.set_font("Helvetica", "", 11)
-    pdf.cell(0, 8, date_str, new_x="LMARGIN", new_y="NEXT", align="C")
+    pdf.set_x(pdf.l_margin)
+    pdf.cell(PW, 8, date_str, new_x="LMARGIN", new_y="NEXT", align="C")
     pdf.set_font("Helvetica", "I", 9)
+    pdf.set_x(pdf.l_margin)
     pdf.cell(
-        0, 6,
+        PW, 6,
         "Your daily briefing on artificial intelligence, technology & security",
         new_x="LMARGIN", new_y="NEXT", align="C",
     )
     pdf.ln(4)
     pdf.set_draw_color(26, 16, 8)
     pdf.set_line_width(0.8)
-    pdf.line(20, pdf.get_y(), 190, pdf.get_y())
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
     pdf.ln(6)
 
     security = [a for a in articles if a.get("is_security_alert")]
@@ -384,16 +428,20 @@ def _generate_pdf(date_str: str) -> bytes:
         pdf.set_font("Helvetica", "B", 13)
         pdf.set_fill_color(139, 0, 0)
         pdf.set_text_color(255, 255, 255)
-        pdf.cell(0, 8, "  SECURITY ALERTS", new_x="LMARGIN", new_y="NEXT", fill=True)
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(PW, 8, "  SECURITY ALERTS", new_x="LMARGIN", new_y="NEXT", fill=True)
         pdf.set_text_color(0, 0, 0)
         pdf.ln(2)
         for a in security:
             pdf.set_font("Helvetica", "B", 10)
-            pdf.multi_cell(0, 6, a.get("title", "")[:90])
+            mc(6, _pdf_text(a.get("title", ""), 90))
             pdf.set_font("Helvetica", "", 9)
-            pdf.multi_cell(0, 5, a.get("summary", "")[:300])
+            summary = _pdf_text(a.get("summary", ""), 300)
+            if summary:
+                mc(5, summary)
             pdf.set_font("Helvetica", "I", 8)
-            pdf.cell(0, 5, a.get("source_name", ""), new_x="LMARGIN", new_y="NEXT")
+            pdf.set_x(pdf.l_margin)
+            pdf.cell(PW, 5, _pdf_text(a.get("source_name", "")), new_x="LMARGIN", new_y="NEXT")
             pdf.ln(3)
         pdf.ln(2)
 
@@ -404,22 +452,200 @@ def _generate_pdf(date_str: str) -> bytes:
             continue
         pdf.set_font("Helvetica", "B", 12)
         pdf.set_fill_color(240, 240, 240)
-        pdf.cell(0, 7, f"  {section['label'].upper()}", new_x="LMARGIN", new_y="NEXT", fill=True)
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(PW, 7, f"  {_pdf_text(section['label'].upper())}", new_x="LMARGIN", new_y="NEXT", fill=True)
         pdf.ln(2)
         for a in section_articles:
             if pdf.get_y() > 260:
                 pdf.add_page()
             pdf.set_font("Helvetica", "B", 10)
-            pdf.multi_cell(0, 6, a.get("title", "")[:90])
+            mc(6, _pdf_text(a.get("title", ""), 90))
             pdf.set_font("Helvetica", "", 9)
-            summary = a.get("summary", "")[:300]
+            summary = _pdf_text(a.get("summary", ""), 300)
             if summary:
-                pdf.multi_cell(0, 5, summary)
+                mc(5, summary)
             pdf.set_font("Helvetica", "I", 8)
-            source = f"{a.get('source_name', '')}  |  Score: {'★' * a.get('importance_score', 0)}"
-            pdf.cell(0, 5, source, new_x="LMARGIN", new_y="NEXT")
+            score_stars = "*" * a.get("importance_score", 0)
+            source = f"{_pdf_text(a.get('source_name', ''))}  |  Score: {score_stars}"
+            pdf.set_x(pdf.l_margin)
+            pdf.cell(PW, 5, source, new_x="LMARGIN", new_y="NEXT")
             pdf.ln(3)
         pdf.ln(2)
+
+    return bytes(pdf.output())
+
+
+def _generate_favorites_pdf(user_id: int) -> bytes:
+    """Build a PDF of a user's saved favourites, grouped by section."""
+    from fpdf import FPDF
+    from datetime import date as _date
+
+    ids      = get_user_favorite_ids(user_id)
+    articles = get_articles_by_ids(ids)
+
+    pdf = FPDF()
+    pdf.set_margins(20, 20, 20)
+    pdf.add_page()
+
+    PW = pdf.w - pdf.l_margin - pdf.r_margin  # 170 mm
+
+    def mc(h: float, text: str) -> None:
+        pdf.set_x(pdf.l_margin)
+        pdf.multi_cell(PW, h, text)
+
+    # ── Cover ──────────────────────────────────────────────────────
+    pdf.set_font("Helvetica", "B", 26)
+    pdf.set_x(pdf.l_margin)
+    pdf.cell(PW, 12, "My Favourites", new_x="LMARGIN", new_y="NEXT", align="C")
+
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_x(pdf.l_margin)
+    pdf.cell(PW, 7, f"Generated on {_date.today().strftime('%B %d, %Y')}", new_x="LMARGIN", new_y="NEXT", align="C")
+
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.set_x(pdf.l_margin)
+    count_label = f"{len(articles)} saved article{'s' if len(articles) != 1 else ''}"
+    pdf.cell(PW, 6, count_label, new_x="LMARGIN", new_y="NEXT", align="C")
+
+    pdf.ln(4)
+    pdf.set_draw_color(239, 68, 68)
+    pdf.set_line_width(0.8)
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+    pdf.ln(6)
+
+    if not articles:
+        pdf.set_font("Helvetica", "I", 11)
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(PW, 10, "No favourites saved yet.", new_x="LMARGIN", new_y="NEXT", align="C")
+        return bytes(pdf.output())
+
+    # ── Group by section, preserving SECTIONS order ────────────────
+    def _render_article(a: dict) -> None:
+        if pdf.get_y() > 260:
+            pdf.add_page()
+        pdf.set_font("Helvetica", "B", 10)
+        mc(6, _pdf_text(a.get("title", ""), 90))
+        pdf.set_font("Helvetica", "", 9)
+        summary = _pdf_text(a.get("summary", ""), 300)
+        if summary:
+            mc(5, summary)
+        pdf.set_font("Helvetica", "I", 8)
+        pub = a.get("published_at", "") or ""
+        source_line = _pdf_text(a.get("source_name", ""))
+        if pub:
+            source_line += f"  |  {pub[:10]}"
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(PW, 5, source_line, new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(3)
+
+    rendered_ids: set = set()
+
+    for section in SECTIONS:
+        cats = section["categories"]
+        section_arts = [a for a in articles if a.get("category") in cats]
+        if not section_arts:
+            continue
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.set_fill_color(240, 240, 240)
+        pdf.set_draw_color(200, 200, 200)
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(PW, 7, f"  {_pdf_text(section['label'].upper())}", new_x="LMARGIN", new_y="NEXT", fill=True)
+        pdf.ln(2)
+        for a in section_arts:
+            _render_article(a)
+            rendered_ids.add(a["id"])
+        pdf.ln(2)
+
+    # ── Anything not matched by a section ─────────────────────────
+    ungrouped = [a for a in articles if a["id"] not in rendered_ids]
+    if ungrouped:
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.set_fill_color(240, 240, 240)
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(PW, 7, "  OTHER", new_x="LMARGIN", new_y="NEXT", fill=True)
+        pdf.ln(2)
+        for a in ungrouped:
+            _render_article(a)
+
+    return bytes(pdf.output())
+
+
+def _generate_section_pdf(section_id: str) -> bytes:
+    """Build a PDF containing all of today's articles for a single section."""
+    from fpdf import FPDF
+    from datetime import date as _date
+
+    # Locate section metadata across all domains
+    section = next(
+        (s for d in DOMAINS for s in d["sections"] if s["id"] == section_id),
+        None,
+    )
+    if not section:
+        raise ValueError(f"Section not found: {section_id}")
+
+    articles = get_articles_by_categories(
+        section["categories"], min_importance=MIN_IMPORTANCE_SCORE
+    )
+
+    pdf = FPDF()
+    pdf.set_margins(20, 20, 20)
+    pdf.add_page()
+
+    PW = pdf.w - pdf.l_margin - pdf.r_margin  # 170 mm
+
+    def mc(h: float, text: str) -> None:
+        pdf.set_x(pdf.l_margin)
+        pdf.multi_cell(PW, h, text)
+
+    # ── Cover ──────────────────────────────────────────────────────
+    icon  = section.get("icon", "")
+    label = _pdf_text(f"{icon}  {section['label']}" if icon else section["label"])
+
+    pdf.set_font("Helvetica", "B", 24)
+    pdf.set_x(pdf.l_margin)
+    pdf.cell(PW, 12, label, new_x="LMARGIN", new_y="NEXT", align="C")
+
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_x(pdf.l_margin)
+    pdf.cell(PW, 7, f"Generated on {_date.today().strftime('%B %d, %Y')}", new_x="LMARGIN", new_y="NEXT", align="C")
+
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.set_x(pdf.l_margin)
+    count_label = f"{len(articles)} article{'s' if len(articles) != 1 else ''} from the last 24 hours"
+    pdf.cell(PW, 6, count_label, new_x="LMARGIN", new_y="NEXT", align="C")
+
+    pdf.ln(4)
+    pdf.set_draw_color(26, 16, 8)
+    pdf.set_line_width(0.8)
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
+    pdf.ln(6)
+
+    if not articles:
+        pdf.set_font("Helvetica", "I", 11)
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(PW, 10, "No articles in this section today.", new_x="LMARGIN", new_y="NEXT", align="C")
+        return bytes(pdf.output())
+
+    # ── Article list ───────────────────────────────────────────────
+    for a in articles:
+        if pdf.get_y() > 260:
+            pdf.add_page()
+        pdf.set_font("Helvetica", "B", 10)
+        mc(6, _pdf_text(a.get("title", ""), 90))
+        pdf.set_font("Helvetica", "", 9)
+        summary = _pdf_text(a.get("summary", ""), 300)
+        if summary:
+            mc(5, summary)
+        pdf.set_font("Helvetica", "I", 8)
+        pub         = (a.get("published_at") or "")[:10]
+        score_stars = "*" * a.get("importance_score", 0)
+        source_line = _pdf_text(a.get("source_name", ""))
+        if pub:
+            source_line += f"  |  {pub}"
+        source_line += f"  |  {score_stars}"
+        pdf.set_x(pdf.l_margin)
+        pdf.cell(PW, 5, source_line, new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(3)
 
     return bytes(pdf.output())
 
@@ -644,6 +870,20 @@ async def unsave_favorite(article_id: int, user: dict = Depends(get_current_user
     return {"ok": ok, "article_id": article_id, "action": "removed"}
 
 
+@app.get("/api/favorites/pdf")
+async def favorites_pdf(user: dict = Depends(get_current_user)):
+    """Download the current user's saved favourites as a PDF."""
+    try:
+        pdf_bytes = _generate_favorites_pdf(user["id"])
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=my-favourites.pdf"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ── Domain & section routes ───────────────────────────────────────
 
 @app.get("/api/domains")
@@ -713,6 +953,23 @@ def api_section(
         "articles": articles,
         "total": len(articles),
     }
+
+
+@app.get("/api/section/{section_id}/pdf")
+def api_section_pdf(section_id: str, user: dict = Depends(get_current_user)):
+    """Download today's articles for a single section as a PDF."""
+    try:
+        pdf_bytes = _generate_section_pdf(section_id)
+        filename  = f"section-{section_id}.pdf"
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── Digest routes ─────────────────────────────────────────────────
