@@ -118,7 +118,10 @@ export default async function HomePage() {
         )}
 
         {/* ── Security alerts ──────────────────────────────────── */}
-        {data && <SecurityAlerts alerts={data.security_alerts} favoritedIds={favoritedIds} />}
+        {/* Show when: no interest filter active, OR user has explicitly selected ai-security */}
+        {data && (!hasInterestFilter || userInterests.has("ai-security")) && (
+          <SecurityAlerts alerts={data.security_alerts} favoritedIds={favoritedIds} />
+        )}
 
         {/* ── Interest filter banner ───────────────────────────── */}
         {hasInterestFilter && data && (

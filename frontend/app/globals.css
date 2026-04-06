@@ -6,21 +6,23 @@
    Design Tokens — Light mode (warm newspaper)
 ───────────────────────────────────────────────────────────── */
 :root {
-  /* Backgrounds */
-  --bg:             #f7f5f0;
-  --bg-rgb:         247, 245, 240;        /* used for frosted glass rgba() */
-  --surface:        #ffffff;
-  --surface-raised: #f0ede7;
-  --surface-hover:  #e8e4dc;
+  /* Backgrounds
+     bg = parchment canvas, surface = card/panel (clearly lighter),
+     raised = inset chip/tag, hover = hover tint */
+  --bg:             #e8e2d8;
+  --bg-rgb:         232, 226, 216;        /* used for frosted glass rgba() */
+  --surface:        #f5f1eb;
+  --surface-raised: #ddd8ce;
+  --surface-hover:  #d4cfc4;
 
-  /* Borders */
-  --border:         #e2ddd5;
-  --border-bright:  #cdc7bd;
+  /* Borders — warm mid-gray, clearly visible on any display */
+  --border:         #b8b2a7;
+  --border-bright:  #928d83;
 
   /* Text */
   --text:           #1a1714;
   --text-2:         #4a4540;
-  --text-3:         #8a857e;
+  --text-3:         #78726b;
 
   /* Accent (blue) */
   --accent:         #1d4ed8;
@@ -49,11 +51,11 @@
   --font-serif:     Georgia, "Times New Roman", serif;
   --font-gothic:    Georgia, "Book Antiqua", Palatino, serif;
 
-  /* Shadows */
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:  0 4px 14px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.05);
-  --shadow-lg:  0 12px 32px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
-  --shadow-xl:  0 20px 48px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.08);
+  /* Shadows — slightly stronger in light mode so cards lift off the parchment bg */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.07);
+  --shadow-md:  0 4px 14px rgba(0,0,0,0.13), 0 2px 6px rgba(0,0,0,0.08);
+  --shadow-lg:  0 12px 32px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.09);
+  --shadow-xl:  0 20px 48px rgba(0,0,0,0.16), 0 8px 20px rgba(0,0,0,0.10);
 
   /* Layout */
   --nav-h:      58px;
@@ -556,8 +558,18 @@ html.dark .badge-purple {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Security section — dark mode boost
+   Security section
 ───────────────────────────────────────────────────────────── */
+/* light */
+.security-alert-card {
+  background: #f9eeee;
+  border-color: rgba(220,38,38,0.20);
+}
+.security-alert-card:hover {
+  background: #f5e8e8;
+  border-color: rgba(220,38,38,0.35);
+}
+/* dark */
 html.dark .security-alert-card {
   background: #1a1018;
   border-color: rgba(248,113,113,0.20);
@@ -568,8 +580,14 @@ html.dark .security-alert-card:hover {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Hero card — dark mode accent border boost
+   Hero card
 ───────────────────────────────────────────────────────────── */
+/* light */
+.hero-card {
+  border-left-color: var(--accent);
+  background: linear-gradient(135deg, #eef2fc 0%, #f5f1eb 100%);
+}
+/* dark */
 html.dark .hero-card {
   border-left-color: var(--accent);
   background: linear-gradient(135deg, #16162a 0%, #14141c 100%);
@@ -578,6 +596,7 @@ html.dark .hero-card {
 /* ─────────────────────────────────────────────────────────────
    Spinner utility (replaces duplicated inline <style> tags)
 ───────────────────────────────────────────────────────────── */
+/* .spinner is used on accent/dark backgrounds — keep white */
 .spinner {
   display: inline-block;
   border-radius: 50%;
@@ -585,6 +604,7 @@ html.dark .hero-card {
   border-top-color: #fff;
   animation: spin 0.8s linear infinite;
 }
+/* .spinner-dark adapts to theme surface */
 .spinner-dark {
   border-color: var(--border-bright);
   border-top-color: var(--accent);

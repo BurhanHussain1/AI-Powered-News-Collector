@@ -7,13 +7,13 @@ import type { UserProfile } from "@/lib/types"
 import { AVATARS, getAvatarUrl, DEFAULT_AVATAR_ID, type Avatar } from "@/lib/avatars"
 
 const INTEREST_OPTIONS = [
-  { id: "ai_models",     label: "New Models",          icon: "🚀", desc: "Model releases, HuggingFace" },
-  { id: "ai_research",   label: "Research Papers",     icon: "🔬", desc: "ArXiv, Papers With Code" },
-  { id: "agentic_ai",    label: "AI Agents",           icon: "🤖", desc: "LangChain, LlamaIndex, AutoGen" },
-  { id: "company_blogs", label: "Company News",        icon: "🏢", desc: "Anthropic, OpenAI, Google" },
-  { id: "tech_stack",    label: "Tech & Tools",        icon: "🛠", desc: "Dev.to, The New Stack" },
-  { id: "business_news", label: "Business & Industry", icon: "📈", desc: "TechCrunch, VentureBeat" },
-  { id: "security",      label: "Security",            icon: "🔒", desc: "CVEs, breaches, advisories" },
+  { id: "new-models",   label: "New Models",           icon: "🚀", desc: "Model releases, HuggingFace" },
+  { id: "research",     label: "Research Papers",      icon: "🔬", desc: "ArXiv, Papers With Code" },
+  { id: "ai-agents",    label: "AI Agents",            icon: "🤖", desc: "LangChain, LlamaIndex, AutoGen" },
+  { id: "company-news", label: "Company News",         icon: "🏢", desc: "Anthropic, OpenAI, Google" },
+  { id: "tech-tools",   label: "Tech & Tools",         icon: "🛠", desc: "Dev.to, The New Stack" },
+  { id: "business",     label: "Business & Industry",  icon: "📈", desc: "TechCrunch, VentureBeat" },
+  { id: "ai-security",  label: "AI Security & Safety", icon: "🔒", desc: "CVEs, breaches, advisories" },
 ]
 
 function AvatarImg({ id, size = 64, ring = false }: { id: string; size?: number; ring?: boolean }) {

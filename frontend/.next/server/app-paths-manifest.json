@@ -1,10 +1,9 @@
 {
-  "/signup/page": "app/signup/page.js",
-  "/page": "app/page.js",
-  "/archive/page": "app/archive/page.js",
+  "/profile/page": "app/profile/page.js",
   "/digest/[date]/page": "app/digest/[date]/page.js",
+  "/favorites/page": "app/favorites/page.js",
   "/domain/[domainId]/page": "app/domain/[domainId]/page.js",
   "/domain/[domainId]/section/[sectionId]/page": "app/domain/[domainId]/section/[sectionId]/page.js",
-  "/favorites/page": "app/favorites/page.js",
-  "/profile/page": "app/profile/page.js"
+  "/page": "app/page.js",
+  "/archive/page": "app/archive/page.js"
 }

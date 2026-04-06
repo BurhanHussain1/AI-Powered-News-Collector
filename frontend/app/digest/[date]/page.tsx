@@ -1,9 +1,8 @@
-import { getDigest, getDomains, getMe } from "@/lib/api"
+import { getDigest, getDomains, getMe, getFavoriteIds } from "@/lib/api"
 import Masthead from "@/components/Masthead"
 import DomainNav from "@/components/DomainNav"
 import SecurityAlerts from "@/components/SecurityAlerts"
-import HeroStory from "@/components/HeroStory"
-import ArticleCard from "@/components/ArticleCard"
+import FrontPageCarousel from "@/components/FrontPageCarousel"
 import SectionBlock from "@/components/SectionBlock"
 
 export default async function DigestPage({ params }: { params: { date: string } }) {
@@ -11,17 +10,24 @@ export default async function DigestPage({ params }: { params: { date: string } 
   let domains: Awaited<ReturnType<typeof getDomains>> = []
   let role: "admin" | "user" | null = null
   let username: string | null = null
+  let name: string = ""
+  let avatar: string = "Neural"
+  let favoritedIds: Set<number> = new Set()
 
   try {
-    const [digest, domainList, auth] = await Promise.all([
+    const [digest, domainList, auth, favIds] = await Promise.all([
       getDigest(params.date),
       getDomains(),
       getMe(),
+      getFavoriteIds(),
     ])
     data = digest
     domains = domainList
     role = auth.role ?? null
     username = auth.username
+    name = auth.name ?? ""
+    avatar = auth.avatar ?? "Neural"
+    favoritedIds = new Set(favIds)
   } catch {
     return (
       <div
@@ -46,7 +52,7 @@ export default async function DigestPage({ params }: { params: { date: string } 
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
-      <Masthead date={data.date} lastUpdated={data.last_updated} role={role} username={username} />
+      <Masthead date={data.date} lastUpdated={data.last_updated} role={role} username={username} name={name} avatar={avatar} />
       <DomainNav domains={domains} />
 
       <main
@@ -91,9 +97,6 @@ export default async function DigestPage({ params }: { params: { date: string } 
           </div>
         ) : (
           <>
-            {/* Security alerts */}
-            <SecurityAlerts alerts={data.security_alerts} />
-
             {/* Edition bar */}
             <div
               className="flex flex-wrap items-baseline justify-between gap-2 pb-3 mb-6"
@@ -110,38 +113,17 @@ export default async function DigestPage({ params }: { params: { date: string } 
               </span>
             </div>
 
-            {/* Top stories */}
+            {/* Top stories — same horizontal carousel as today page */}
             {data.top_stories.length > 0 && (
-              <section className="mb-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <div style={{ width: "3px", height: "1.25rem", background: "var(--accent)", borderRadius: "2px" }} />
-                  <span className="text-sm font-bold" style={{ color: "var(--text)" }}>Front Page</span>
-                  <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-2">
-                    <HeroStory article={data.top_stories[0]} />
-                  </div>
-                  {data.top_stories.length > 1 && (
-                    <div className="flex flex-col gap-4">
-                      {data.top_stories.slice(1, 4).map(article => (
-                        <ArticleCard
-                          key={article.id}
-                          article={article}
-                          sectionColor="var(--accent)"
-                          featured
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </section>
+              <FrontPageCarousel stories={data.top_stories} favoritedIds={favoritedIds} />
             )}
+
+            {/* Security alerts — after carousel, same order as today page */}
+            <SecurityAlerts alerts={data.security_alerts} favoritedIds={favoritedIds} />
 
             {/* Section blocks */}
             {data.sections.map(section => (
-              <SectionBlock key={section.id} section={section} />
+              <SectionBlock key={section.id} section={section} favoritedIds={favoritedIds} />
             ))}
           </>
         )}

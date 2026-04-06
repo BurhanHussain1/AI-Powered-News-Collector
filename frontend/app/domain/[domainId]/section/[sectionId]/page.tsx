@@ -1,4 +1,4 @@
-import { getDomain, getDomains, getSection, getMe } from "@/lib/api"
+import { getDomain, getDomains, getSection, getMe, getSectionPdfUrl } from "@/lib/api"
 import Masthead from "@/components/Masthead"
 import DomainNav from "@/components/DomainNav"
 import SectionSidebar from "@/components/SectionSidebar"
@@ -82,9 +82,19 @@ export default async function SectionPage({
                 {section.label}
               </h1>
             </div>
-            <span className="text-sm ml-auto" style={{ color: "var(--text-2)" }}>
-              {articles.length} article{articles.length !== 1 ? "s" : ""}
-            </span>
+            <div className="ml-auto flex items-center gap-3">
+              <span className="text-sm" style={{ color: "var(--text-2)" }}>
+                {articles.length} article{articles.length !== 1 ? "s" : ""}
+              </span>
+              <a
+                href={getSectionPdfUrl(params.sectionId)}
+                title={`Download ${section.label} as PDF`}
+                className="btn btn-secondary"
+                style={{ fontSize: "0.8125rem" }}
+              >
+                ⬇ Download PDF
+              </a>
+            </div>
           </div>
 
           {articles.length === 0 ? (

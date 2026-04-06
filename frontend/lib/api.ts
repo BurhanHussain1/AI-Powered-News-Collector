@@ -113,6 +113,32 @@ export async function removeFavorite(articleId: number) {
   return apiFetch<{ ok: boolean }>(`/api/favorites/${articleId}`, { method: "DELETE" })
 }
 
+/**
+ * Fetch /api/favorites/pdf with auth cookies and trigger a browser download.
+ * Returns an error string on failure, or null on success.
+ */
+export async function downloadFavoritesPdf(): Promise<string | null> {
+  try {
+    const res = await fetch("/api/favorites/pdf", { credentials: "include" })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      return (body as { detail?: string }).detail ?? `HTTP ${res.status}`
+    }
+    const blob = await res.blob()
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement("a")
+    a.href     = url
+    a.download = "my-favourites.pdf"
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    return null
+  } catch (err) {
+    return String(err)
+  }
+}
+
 // ── Profile ──────────────────────────────────────────────────────────────────
 export async function getProfile() {
   return apiFetch<import("./types").UserProfile>("/api/profile")
@@ -154,6 +180,10 @@ export async function getArchive(): Promise<DigestRecord[]> {
 
 export function getPdfUrl(date: string): string {
   return `/api/digest/${date}/pdf`
+}
+
+export function getSectionPdfUrl(sectionId: string): string {
+  return `/api/section/${sectionId}/pdf`
 }
 
 // ── Refresh ─────────────────────────────────────────────────────

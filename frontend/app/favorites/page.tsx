@@ -1,14 +1,16 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getFavorites } from "@/lib/api"
+import { getFavorites, downloadFavoritesPdf } from "@/lib/api"
 import ArticleCard from "@/components/ArticleCard"
 import type { Article } from "@/lib/types"
 
 export default function FavoritesPage() {
   const router = useRouter()
-  const [articles, setArticles] = useState<Article[]>([])
-  const [loading, setLoading]   = useState(true)
+  const [articles, setArticles]       = useState<Article[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [pdfLoading, setPdfLoading]   = useState(false)
+  const [pdfError, setPdfError]       = useState<string | null>(null)
 
   useEffect(() => {
     getFavorites()
@@ -16,6 +18,15 @@ export default function FavoritesPage() {
       .catch(() => router.push("/login"))
       .finally(() => setLoading(false))
   }, [])
+
+  async function handleDownloadPdf() {
+    if (articles.length === 0) return
+    setPdfLoading(true)
+    setPdfError(null)
+    const err = await downloadFavoritesPdf()
+    if (err) setPdfError(err)
+    setPdfLoading(false)
+  }
 
   function handleUnfavorite(id: number) {
     setArticles(prev => prev.filter(a => a.id !== id))
@@ -38,7 +49,21 @@ export default function FavoritesPage() {
               ♥ Favourites
             </span>
           </div>
-          <a href="/" className="btn btn-secondary" style={{ fontSize: "0.8125rem" }}>← Back to Digest</a>
+          <div className="flex items-center gap-2">
+            {!loading && articles.length > 0 && (
+              <button
+                onClick={handleDownloadPdf}
+                disabled={pdfLoading}
+                className="btn btn-secondary"
+                style={{ fontSize: "0.8125rem", display: "inline-flex", alignItems: "center", gap: "6px" }}
+              >
+                {pdfLoading
+                  ? <><span className="spinner" style={{ width: "12px", height: "12px" }} /> Generating…</>
+                  : "⬇ Download PDF"}
+              </button>
+            )}
+            <a href="/" className="btn btn-secondary" style={{ fontSize: "0.8125rem" }}>← Back to Digest</a>
+          </div>
         </div>
       </header>
 
@@ -57,6 +82,11 @@ export default function FavoritesPage() {
               ? `${articles.length} saved article${articles.length !== 1 ? "s" : ""} — click ♥ on any card to remove`
               : "No favourites yet"}
           </p>
+          {pdfError && (
+            <p className="text-sm ml-6 mt-1" style={{ color: "#ef4444" }}>
+              PDF error: {pdfError}
+            </p>
+          )}
         </div>
 
         {/* Loading */}

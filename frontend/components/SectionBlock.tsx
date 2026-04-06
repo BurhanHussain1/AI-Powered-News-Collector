@@ -1,4 +1,5 @@
 import type { DomainSection, Article } from "@/lib/types"
+import { getSectionPdfUrl } from "@/lib/api"
 import ArticleCard from "./ArticleCard"
 
 type SectionWithArticles = DomainSection & { articles: Article[] }
@@ -33,6 +34,21 @@ export default function SectionBlock({ section, favoritedIds = new Set() }: { se
         >
           {section.articles.length}
         </span>
+        <a
+          href={getSectionPdfUrl(section.id)}
+          title={`Download ${section.label} as PDF`}
+          className="text-xs font-medium px-2 py-0.5 rounded"
+          style={{
+            color: "var(--text-3)",
+            border: "1px solid var(--border)",
+            background: "var(--surface-raised)",
+            textDecoration: "none",
+            whiteSpace: "nowrap",
+            lineHeight: "1.6",
+          }}
+        >
+          ⬇ PDF
+        </a>
         <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
       </div>
 
