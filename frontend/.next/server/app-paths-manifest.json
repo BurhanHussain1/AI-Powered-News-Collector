@@ -1,13 +1,10 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/admin/page": "app/admin/page.js",
-  "/domain/[domainId]/page": "app/domain/[domainId]/page.js",
-  "/digest/[date]/page": "app/digest/[date]/page.js",
+  "/page": "app/page.js",
   "/archive/page": "app/archive/page.js",
-  "/domain/[domainId]/section/[sectionId]/page": "app/domain/[domainId]/section/[sectionId]/page.js",
+  "/digest/[date]/page": "app/digest/[date]/page.js",
+  "/profile/page": "app/profile/page.js",
   "/favorites/page": "app/favorites/page.js",
   "/login/page": "app/login/page.js",
-  "/page": "app/page.js",
-  "/profile/page": "app/profile/page.js",
-  "/signup/page": "app/signup/page.js"
+  "/domain/[domainId]/page": "app/domain/[domainId]/page.js",
+  "/domain/[domainId]/section/[sectionId]/page": "app/domain/[domainId]/section/[sectionId]/page.js"
 }

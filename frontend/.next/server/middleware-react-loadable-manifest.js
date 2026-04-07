@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST='{"lib\\\\api.ts -> next/headers":{"id":2530,"files":["static/chunks/530.a506b9a81ee0fc5f.js"]}}';
+self.__REACT_LOADABLE_MANIFEST="{\"lib\\\\api.ts -> next/headers\":{\"id\":\"lib\\\\api.ts -> next/headers\",\"files\":[\"static/chunks/_app-pages-browser_node_modules_next_dist_api_headers_js.js\"]}}"
