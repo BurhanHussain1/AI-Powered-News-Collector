@@ -21,7 +21,7 @@ import time
 from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from threading import Lock
+from threading import Lock, Thread
 
 from fastapi import FastAPI, Request, HTTPException, Depends, Cookie
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -33,7 +33,7 @@ import bcrypt as _bcrypt
 
 from config import MIN_IMPORTANCE_SCORE, DOMAINS, SECTIONS
 from database import (
-    get_all_digests, get_todays_articles, get_articles_by_categories,
+    get_all_digests, get_todays_articles, get_articles_for_date, get_articles_by_categories,
     delete_digest, init_db, seed_admin,
     create_user, get_user_by_username, get_user_by_email,
     username_exists, email_exists, update_user_profile, get_user_by_id,
@@ -60,6 +60,30 @@ OTP_MAX_ATTEMPTS = 5
 
 _otp_store: dict[str, dict] = {}
 _otp_lock  = Lock()
+
+# ── Pipeline status (in-memory, single process) ───────────────────────────────
+_pipeline_lock   = Lock()
+_pipeline_status = {"running": False, "last_result": None, "last_run": None}
+
+
+def _run_pipeline_bg(username: str) -> None:
+    from collector import run_collection
+    from processor import run_processing
+    from digest_builder import build_digest
+    try:
+        print(f"[api] Pipeline started by {username}")
+        run_collection()
+        run_processing()
+        build_digest()
+        result = "ok"
+        print("[api] Pipeline complete")
+    except Exception as exc:
+        result = f"error: {exc}"
+        print(f"[api] Pipeline error: {exc}")
+    with _pipeline_lock:
+        _pipeline_status["running"]     = False
+        _pipeline_status["last_result"] = result
+        _pipeline_status["last_run"]    = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
 def _make_otp() -> str:
@@ -325,7 +349,11 @@ def _clear_auth_cookies(response: JSONResponse) -> None:
 # ── Digest data builder ───────────────────────────────────────────
 
 def _build_digest_data(date_str: str) -> dict:
-    articles = get_todays_articles(min_importance=MIN_IMPORTANCE_SCORE)
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if date_str == today:
+        articles = get_todays_articles(min_importance=MIN_IMPORTANCE_SCORE)
+    else:
+        articles = get_articles_for_date(date_str, min_importance=MIN_IMPORTANCE_SCORE)
 
     security_alerts = [a for a in articles if a.get("is_security_alert")]
     top_stories = sorted(
@@ -1007,15 +1035,19 @@ def api_digests(user: dict = Depends(get_current_user)):
 
 @app.post("/api/refresh")
 def api_refresh(user: dict = Depends(get_admin_user)):
-    from collector import run_collection
-    from processor import run_processing
-    from digest_builder import build_digest
-    print(f"[api] Pipeline triggered by admin: {user['username']}")
-    run_collection()
-    run_processing()
-    build_digest()
-    print("[api] Pipeline complete")
-    return {"ok": True}
+    with _pipeline_lock:
+        if _pipeline_status["running"]:
+            raise HTTPException(status_code=409, detail="Pipeline is already running")
+        _pipeline_status["running"]     = True
+        _pipeline_status["last_result"] = None
+    Thread(target=_run_pipeline_bg, args=(user["username"],), daemon=True).start()
+    return {"ok": True, "status": "started"}
+
+
+@app.get("/api/refresh/status")
+def api_refresh_status(user: dict = Depends(get_admin_user)):
+    with _pipeline_lock:
+        return dict(_pipeline_status)
 
 
 # ── Admin routes ──────────────────────────────────────────────────

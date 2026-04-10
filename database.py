@@ -256,6 +256,26 @@ def get_todays_articles(min_importance=3):
     return rows
 
 
+def get_articles_for_date(date_str: str, min_importance=3):
+    """Return processed articles fetched on a specific calendar date (YYYY-MM-DD)."""
+    conn = get_conn()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute(
+        """
+        SELECT * FROM articles
+        WHERE DATE(fetched_at) = ?
+          AND processed = 1
+          AND importance_score >= ?
+        ORDER BY importance_score DESC
+        """,
+        (date_str, min_importance),
+    )
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return rows
+
+
 def save_digest_record(date, filepath):
     conn = get_conn()
     c = conn.cursor()

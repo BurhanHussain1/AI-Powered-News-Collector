@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getMe, getAdminDigests, deleteDigest, triggerRefresh } from "@/lib/api"
+import { getMe, getAdminDigests, deleteDigest, triggerRefresh, getRefreshStatus } from "@/lib/api"
 import type { DigestRecord } from "@/lib/types"
 
 export default function AdminPage() {
@@ -60,13 +60,32 @@ export default function AdminPage() {
     setToast(null)
     try {
       await triggerRefresh()
-      showToast("Pipeline complete — digest generated.", "ok")
-      loadDigests()
     } catch {
-      showToast("Pipeline failed. Check the server logs.", "err")
-    } finally {
+      showToast("Failed to start pipeline. Check the server logs.", "err")
       setRefreshing(false)
+      return
     }
+
+    // Poll every 3 s until the background job finishes
+    const poll = setInterval(async () => {
+      try {
+        const status = await getRefreshStatus()
+        if (!status.running) {
+          clearInterval(poll)
+          setRefreshing(false)
+          if (status.last_result === "ok") {
+            showToast("Pipeline complete — digest generated.", "ok")
+            loadDigests()
+          } else {
+            showToast(`Pipeline failed: ${status.last_result ?? "unknown error"}`, "err")
+          }
+        }
+      } catch {
+        clearInterval(poll)
+        setRefreshing(false)
+        showToast("Lost contact with server while pipeline was running.", "err")
+      }
+    }, 3000)
   }
 
   const latest = digests[0]?.date ?? null

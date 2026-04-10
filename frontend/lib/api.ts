@@ -191,6 +191,10 @@ export async function triggerRefresh() {
   return apiFetch("/api/refresh", { method: "POST" })
 }
 
+export async function getRefreshStatus(): Promise<{ running: boolean; last_result: string | null; last_run: string | null }> {
+  return apiFetch("/api/refresh/status")
+}
+
 // ── Admin ───────────────────────────────────────────────────────
 export async function getAdminDigests(): Promise<DigestRecord[]> {
   return apiFetch("/api/admin/digests")
